@@ -6,6 +6,10 @@ on:
 jobs:
   build:
     runs-on: macos-latest
+    defaults:
+      run:
+        working-directory: ./beoffline # <-- mówimy GitHubowi, żeby wchodził do folderu beoffline
+
     steps:
       - uses: actions/checkout@v4
 
@@ -28,4 +32,4 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           name: beoffline-ipa
-          path: beoffline.ipa
+          path: beoffline/beoffline.ipa # <-- poprawiona ścieżka do gotowego pliku
