@@ -1,40 +1,35 @@
-name: Build iOS App
+name: Build iOS
 
 on:
-  push:
-    branches: [ "main" ]
-  workflow_dispatch: # Pozwala uruchomić budowanie ręcznie z GitHuba
+  workflow_dispatch:
 
 jobs:
-  build_ios:
-    runs-on: macos-latest # GitHub daje nam darmowego Maca na czas budowania
+  build:
+    runs-on: macos-latest
+    defaults:
+      run:
+        working-directory: ./beoffline # <-- mówimy GitHubowi, żeby wchodził do folderu beoffline
 
     steps:
-    - name: Checkout repository
-      uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-    - name: Setup Flutter
-      uses: subosito/flutter-action@v2
-      with:
-        flutter-version: '3.19.0' # Możesz zmienić na swoją wersję
-        channel: 'stable'
-        cache: true
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
 
-    - name: Install dependencies
-      run: flutter pub get
+      - name: Pobierz paczki
+        run: flutter pub get
 
-    - name: Build iOS (no codesign)
-      run: flutter build ios --release --no-codesign
-      # Kompiluje aplikację bez podpisywania (bo nie mamy certyfikatu)
+      - name: Zbuduj aplikację (bez podpisu)
+        run: flutter build ios --release --no-codesign -t lib/main.dart
 
-    - name: Zip the build
-      run: |
-        cd build/ios/iphoneos
-        zip -r Runner.app.zip Runner.app
+      - name: Spakuj do IPA
+        run: |
+          mkdir Payload
+          cp -r build/ios/iphoneos/Runner.app Payload/
+          zip -qr beoffline.ipa Payload
 
-    - name: Upload build artifact
-      uses: actions/upload-artifact@v4
-      with:
-        name: beoffline-ios-build
-        path: build/ios/iphoneos/Runner.app.zip
-        retention-days: 7
+      - uses: actions/upload-artifact@v4
+        with:
+          name: beoffline-ipa
+          path: beoffline/beoffline.ipa # <-- poprawiona ścieżka do gotowego pliku
