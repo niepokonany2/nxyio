@@ -1,0 +1,40 @@
+name: Build iOS App
+
+on:
+  push:
+    branches: [ "main" ]
+  workflow_dispatch: # Pozwala uruchomić budowanie ręcznie z GitHuba
+
+jobs:
+  build_ios:
+    runs-on: macos-latest # GitHub daje nam darmowego Maca na czas budowania
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Setup Flutter
+      uses: subosito/flutter-action@v2
+      with:
+        flutter-version: '3.19.0' # Możesz zmienić na swoją wersję
+        channel: 'stable'
+        cache: true
+
+    - name: Install dependencies
+      run: flutter pub get
+
+    - name: Build iOS (no codesign)
+      run: flutter build ios --release --no-codesign
+      # Kompiluje aplikację bez podpisywania (bo nie mamy certyfikatu)
+
+    - name: Zip the build
+      run: |
+        cd build/ios/iphoneos
+        zip -r Runner.app.zip Runner.app
+
+    - name: Upload build artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: beoffline-ios-build
+        path: build/ios/iphoneos/Runner.app.zip
+        retention-days: 7
