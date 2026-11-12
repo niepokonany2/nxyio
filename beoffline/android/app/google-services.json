@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "198767371027",
+    "project_id": "beoffline-eaac9",
+    "storage_bucket": "beoffline-eaac9.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:198767371027:android:46b41b221058a5367a30e6",
+        "android_client_info": {
+          "package_name": "com.example.beoffline"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyA_7RG1N1_QNXqsZOHt2yieNksMvArvvf0"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
