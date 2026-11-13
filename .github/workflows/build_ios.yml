@@ -1,27 +1,20 @@
-name: Build Flutter iOS App
+name: Build iOS
 
 on:
-  push:
-    branches: [ "main" ]
   workflow_dispatch:
 
 jobs:
-  build-ios:
+  build:
     runs-on: macos-latest
-
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: Setup Flutter
-        uses: subosito/flutter-action@v2
+      - uses: subosito/flutter-action@v2
         with:
-          flutter-version: '3.19.0'
+          flutter-version: '3.24.0' # Wymuszamy nowszą, stabilną wersję
           channel: 'stable'
-          cache: true
 
-      # Ten krok automatycznie znajdzie folder, w którym leży pubspec.yaml
-      - name: Find and Build
+      - name: Budowanie aplikacji
         run: |
           echo "Szukanie pliku pubspec.yaml..."
           PROJECT_DIR=$(find . -name "pubspec.yaml" -not -path "*/.*" -exec dirname {} \; | head -n 1)
@@ -38,7 +31,7 @@ jobs:
           flutter pub get
           
           echo "Uruchamianie build iOS..."
-          flutter build ios --release --no-codesign
+          flutter build ios --release --no-codesign -t lib/main.dart
           
           echo "Pakowanie do IPA..."
           mkdir Payload
@@ -48,8 +41,7 @@ jobs:
           echo "Przenoszenie pliku IPA do głównego katalogu..."
           mv beoffline.ipa $GITHUB_WORKSPACE/beoffline.ipa
 
-      - name: Upload IPA
-        uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v4
         with:
           name: beoffline-ipa
           path: beoffline.ipa
