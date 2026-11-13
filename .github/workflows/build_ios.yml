@@ -9,12 +9,14 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: subosito/flutter-action@v2
+      # TO JEST NAJWAŻNIEJSZA LINIJKA - instaluje nowego Fluttera
+      - name: Pobierz nowego Fluttera
+        uses: subosito/flutter-action@v2
         with:
-          flutter-version: '3.24.0' # Wymuszamy nowszą, stabilną wersję
           channel: 'stable'
+          flutter-version: '3.24.5'
 
-      - name: Budowanie aplikacji
+      - name: Find and Build
         run: |
           echo "Szukanie pliku pubspec.yaml..."
           PROJECT_DIR=$(find . -name "pubspec.yaml" -not -path "*/.*" -exec dirname {} \; | head -n 1)
