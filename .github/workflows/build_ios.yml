@@ -9,11 +9,10 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Pobierz stabilnego Fluttera
+      - name: Pobierz najnowszego stabilnego Fluttera
         uses: subosito/flutter-action@v2
         with:
-          channel: 'stable'
-          flutter-version: '3.24.5'
+          channel: 'stable' 
 
       - name: Find, Fix and Build
         run: |
@@ -28,13 +27,13 @@ jobs:
           cd "$PROJECT_DIR"
           echo "Jestem w folderze: $PROJECT_DIR"
           
-          # 1. Usuwamy plik lock, żeby nie blokował nowych wersji
+          # Usuwamy plik lock, żeby nie blokował nowych wersji
           rm -f pubspec.lock
           
-          # 2. W locie podmieniamy wersję usage_stats na 2.0.0 (bez daszka)
+          # Podmieniamy wersję usage_stats na 2.0.0 (bez daszka)
           sed -i '' 's/usage_stats:.*/usage_stats: 2.0.0/g' pubspec.yaml
           
-          # 3. Zmieniamy flutter_lints na starsze, żeby nie wymagało nieistniejącego Darta
+          # Zmieniamy flutter_lints na starsze, żeby nie wymagało nieistniejącego Darta
           sed -i '' 's/flutter_lints:.*/flutter_lints: ^5.0.0/g' pubspec.yaml
           
           echo "=== SPRAWDZENIE CZY PLIK ZOSTAŁ ZMODYFIKOWANY ==="
