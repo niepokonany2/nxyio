@@ -16,7 +16,7 @@ jobs:
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
         with:
-          flutter-version: '3.24.0'
+          flutter-version: '3.50.0' # Wersja, która rozwiąże błędy zależności
           channel: 'stable'
           cache: true
 
@@ -26,10 +26,16 @@ jobs:
           PROJECT_DIR=$(find . -name "pubspec.yaml" -not -path "*/.*" -exec dirname {} \; | head -n 1)
           cd "$PROJECT_DIR"
           
+          echo "Usuwanie pakietu usage_stats z iOS (nie jest tu potrzebny)..."
+          sed -i '' -e '/usage_stats:/d' pubspec.yaml
+          
+          echo "Usuwanie starego pliku blokady..."
           rm -f pubspec.lock
+          
+          echo "Pobieranie zależności..."
           flutter pub get
           
-          echo "=== PODPIĘCIE PLIKÓW SWIFT DO XCODE ==="
+          echo "=== PODPIĘCIE PLIKÓW SWIFT I BIBLIOTEK DO XCODE ==="
           cd ios
           gem install xcodeproj --no-document
           ruby -e '
@@ -37,16 +43,23 @@ jobs:
             project = Xcodeproj::Project.open("Runner.xcodeproj")
             target = project.targets.find { |t| t.name == "Runner" }
             group = project.main_group.find_subpath("Runner", true)
-            
-            # Dodawanie plików Swift
+
+            # 1. Podpinanie Twoich plików Swift
             ["ScreenTimeManager.swift", "ScreenTimeReport.swift"].each do |file_name|
               file_ref = group.files.find { |f| f.path == file_name } || group.new_reference(file_name)
-              target.add_file_references([file_ref]) unless target.source_build_phase.files_references.include?(file_ref)
+              unless target.source_build_phase.files_references.include?(file_ref)
+                target.source_build_phase.add_file_reference(file_ref)
+              end
             end
 
-            # Linkowanie wymaganych frameworków Apple
+            # 2. Linkowanie frameworków Apple (Screen Time API)
             ["FamilyControls", "ManagedSettings", "DeviceActivity"].each do |fw|
-              target.add_system_framework(fw)
+              path = "System/Library/Frameworks/#{fw}.framework"
+              file_ref = project.frameworks_group.files.find { |f| f.path == path } || project.frameworks_group.new_reference(path)
+              file_ref.source_tree = "SDKROOT"
+              unless target.frameworks_build_phase.files_references.include?(file_ref)
+                target.frameworks_build_phase.add_file_reference(file_ref)
+              end
             end
             project.save
           '
