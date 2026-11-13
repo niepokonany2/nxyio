@@ -1,61 +1,68 @@
-name: Build iOS
+name: Build Flutter iOS App
 
 on:
+  push:
+    branches: [ "main" ]
   workflow_dispatch:
 
 jobs:
-  build:
+  build-ios:
     runs-on: macos-latest
-    steps:
-      - uses: actions/checkout@v4
 
-      - name: Pobierz najnowszego stabilnego Fluttera
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Flutter
         uses: subosito/flutter-action@v2
         with:
-          channel: 'stable' 
+          flutter-version: '3.24.0'
+          channel: 'stable'
+          cache: true
 
-      - name: Find, Fix and Build
+      - name: Build iOS
         run: |
-          echo "Szukanie pliku pubspec.yaml..."
+          echo "Szukanie projektu..."
           PROJECT_DIR=$(find . -name "pubspec.yaml" -not -path "*/.*" -exec dirname {} \; | head -n 1)
-          
-          if [ -z "$PROJECT_DIR" ]; then
-            echo "BŁĄD: Nie znaleziono pubspec.yaml!"
-            exit 1
-          fi
-          
           cd "$PROJECT_DIR"
-          echo "Jestem w folderze: $PROJECT_DIR"
           
-          # Usuwamy plik lock, żeby nie blokował nowych wersji
           rm -f pubspec.lock
-          
-          # Podmieniamy wersję usage_stats na 2.0.0 (bez daszka)
-          sed -i '' 's/usage_stats:.*/usage_stats: 2.0.0/g' pubspec.yaml
-          
-          # Zmieniamy flutter_lints na starsze, żeby nie wymagało nieistniejącego Darta
-          sed -i '' 's/flutter_lints:.*/flutter_lints: ^5.0.0/g' pubspec.yaml
-          
-          echo "=== SPRAWDZENIE CZY PLIK ZOSTAŁ ZMODYFIKOWANY ==="
-          grep "usage_stats" pubspec.yaml
-          grep "flutter_lints" pubspec.yaml
-          echo "==================================================="
-          
-          echo "Uruchamianie flutter pub get..."
           flutter pub get
           
-          echo "Uruchamianie build iOS..."
-          flutter build ios --release --no-codesign -t lib/main.dart
+          echo "=== PODPIĘCIE PLIKÓW SWIFT DO XCODE ==="
+          cd ios
+          gem install xcodeproj --no-document
+          ruby -e '
+            require "xcodeproj"
+            project = Xcodeproj::Project.open("Runner.xcodeproj")
+            target = project.targets.find { |t| t.name == "Runner" }
+            group = project.main_group.find_subpath("Runner", true)
+            
+            # Dodawanie plików Swift
+            ["ScreenTimeManager.swift", "ScreenTimeReport.swift"].each do |file_name|
+              file_ref = group.files.find { |f| f.path == file_name } || group.new_reference(file_name)
+              target.add_file_references([file_ref]) unless target.source_build_phase.files_references.include?(file_ref)
+            end
+
+            # Linkowanie wymaganych frameworków Apple
+            ["FamilyControls", "ManagedSettings", "DeviceActivity"].each do |fw|
+              target.add_system_framework(fw)
+            end
+            project.save
+          '
+          cd ..
+          
+          echo "Budowanie iOS..."
+          flutter build ios --release --no-codesign -t lib/main_ios.dart
           
           echo "Pakowanie do IPA..."
           mkdir Payload
           mv build/ios/iphoneos/Runner.app Payload/
           zip -r beoffline.ipa Payload
-          
-          echo "Przenoszenie pliku IPA do głównego katalogu..."
           mv beoffline.ipa $GITHUB_WORKSPACE/beoffline.ipa
 
-      - uses: actions/upload-artifact@v4
+      - name: Upload IPA
+        uses: actions/upload-artifact@v4
         with:
           name: beoffline-ipa
           path: beoffline.ipa
